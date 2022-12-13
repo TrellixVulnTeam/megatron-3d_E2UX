@@ -54,7 +54,26 @@ class DataDownloader(ABC):
         tarfile_path = os.path.join(self.base_dir, os.path.basename(self.url))
         with tarfile.open(tarfile_path, "r:gz") as dataset_tar:
             print(f'Extracting files from {tarfile_path}...')
-            dataset_tar.extractall(self.path)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(dataset_tar, self.path)
 
     def _extract_zstd(self, remove_zstd=True):
         self.path = os.path.join(self.base_dir, self.name)
